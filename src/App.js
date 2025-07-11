@@ -1,5 +1,5 @@
 import React from 'react';
-import AIOpportunityQuadrant from '../AIOpportunityQuadrant';
+import AIOpportunityQuadrant from './AIOpportunityQuadrant';
 import './App.css';
 
 function App() {
