@@ -10,6 +10,9 @@ A React-based interactive visualization tool for assessing and prioritizing AI i
 - **Category Color Coding**: Visual distinction between Clinical, Operational, and Financial initiatives
 - **Dynamic Metrics**: Live updates of Quick Wins count and average impact score
 - **Responsive Design**: Works on desktop and tablet screens
+- **URL Sharing**: Generate shareable links with embedded data
+- **Auto-save**: Automatic persistence to browser localStorage
+- **Import/Export**: JSON file support for data backup and transfer
 - **Export-Ready**: Perfect for executive presentations
 
 ## Quadrants
@@ -64,11 +67,33 @@ npm run build
 
 ## Usage
 
+### Basic Operations
 1. **View Existing Initiatives**: The quadrant displays sample AI initiatives with their impact and feasibility scores
 2. **Add New Projects**: Click "Add Project" to create new initiatives
 3. **Edit Projects**: Click the edit icon next to any project to modify its details
 4. **Delete Projects**: Click the X icon to remove projects
 5. **Interactive Chart**: Hover over data points to see detailed information
+
+### Data Management & Sharing
+6. **Share Your Quadrant**: Click "Share" to generate a shareable URL containing your current initiatives
+7. **Auto-save**: All changes are automatically saved to your browser's localStorage
+8. **Export Data**: Download your initiatives as a JSON file for backup or sharing
+9. **Import Data**: Upload a JSON file to load previously saved initiatives
+10. **Reset**: Return to default sample data
+
+### URL Sharing
+- Generate a shareable URL that contains all your initiative data
+- Recipients can access the same quadrant configuration by opening the shared link
+- Data is compressed and embedded in the URL parameters
+- No server-side storage required - everything is client-side
+
+### Example Sharing Workflow
+1. Customize your AI initiatives in the quadrant
+2. Click the "Share" button in the Data Management section
+3. Copy the generated URL
+4. Send the URL to colleagues or stakeholders
+5. Recipients open the URL to see your exact configuration
+6. They can then modify and create their own versions
 
 ## Customization
 
