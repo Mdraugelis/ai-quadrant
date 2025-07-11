@@ -269,6 +269,155 @@ const AIOpportunityQuadrant = () => {
     event.target.value = '';
   };
 
+  const parseCSVLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
+  };
+
+  const handleImportCSV = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result;
+          const lines = text.split('\n').filter(line => line.trim());
+          
+          if (lines.length < 2) {
+            alert('CSV file appears to be empty or has no data rows.');
+            return;
+          }
+          
+          // Parse header to find column indices
+          const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+          const nameIndex = headers.findIndex(h => h.includes('project') || h.includes('name') || h.includes('initiative'));
+          const categoryIndex = headers.findIndex(h => h.includes('category'));
+          const phaseIndex = headers.findIndex(h => h.includes('phase') || h.includes('status'));
+          const descriptionIndex = headers.findIndex(h => h.includes('description') || h.includes('desc'));
+          const impactIndex = headers.findIndex(h => h.includes('impact'));
+          const feasibilityIndex = headers.findIndex(h => h.includes('feasibility') || h.includes('feasible'));
+          
+          const importedData = [];
+          let skippedRows = 0;
+          
+          for (let i = 1; i < lines.length; i++) {
+            const values = parseCSVLine(lines[i]);
+            
+            // Skip empty rows
+            if (values.every(v => !v.trim())) continue;
+            
+            // Extract and validate values with defaults
+            const name = values[nameIndex]?.trim() || `Initiative ${i}`;
+            
+            // Skip if no name can be determined
+            if (!name || name === `Initiative ${i}` && nameIndex === -1) {
+              skippedRows++;
+              continue;
+            }
+            
+            // Category validation with default
+            let category = values[categoryIndex]?.trim() || 'Operational';
+            const validCategories = ['Clinical', 'Operational', 'Financial', 'College', 'GHP'];
+            if (!validCategories.includes(category)) {
+              // Try to match partial category names
+              const matched = validCategories.find(c => c.toLowerCase().includes(category.toLowerCase()) || category.toLowerCase().includes(c.toLowerCase()));
+              category = matched || 'Operational';
+            }
+            
+            // Phase validation with default
+            let phase = values[phaseIndex]?.trim()?.toLowerCase() || 'unplanned';
+            const phaseMap = {
+              'implemented': 'implemented',
+              'complete': 'implemented',
+              'done': 'implemented',
+              'planned': 'planned',
+              'planning': 'planned',
+              'in progress': 'planned',
+              'unplanned': 'unplanned',
+              'future': 'unplanned',
+              'proposed': 'unplanned'
+            };
+            phase = phaseMap[phase] || 'unplanned';
+            
+            // Parse numeric values with defaults
+            const parseScore = (value, defaultScore = 3) => {
+              if (!value) return defaultScore;
+              const num = parseFloat(value);
+              if (isNaN(num)) return defaultScore;
+              // Clamp between 1 and 5
+              return Math.max(1, Math.min(5, num));
+            };
+            
+            const impact = parseScore(values[impactIndex], 3);
+            const feasibility = parseScore(values[feasibilityIndex], 3);
+            
+            const description = values[descriptionIndex]?.trim() || '';
+            
+            const newId = generateNewId([...data, ...importedData]);
+            
+            importedData.push({
+              id: newId + importedData.length,
+              name,
+              category,
+              phase,
+              description,
+              impact,
+              feasibility
+            });
+          }
+          
+          if (importedData.length === 0) {
+            alert('No valid data found in CSV file. Please check the file format.');
+            return;
+          }
+          
+          // Validate all imported projects
+          const validProjects = importedData.filter(p => isValidProject(p));
+          
+          if (validProjects.length === 0) {
+            alert('No valid projects could be imported from the CSV file.');
+            return;
+          }
+          
+          setData([...data, ...validProjects]);
+          
+          let message = `Successfully imported ${validProjects.length} initiatives from CSV.`;
+          if (skippedRows > 0) {
+            message += ` Skipped ${skippedRows} invalid rows.`;
+          }
+          if (validProjects.length < importedData.length) {
+            message += ` ${importedData.length - validProjects.length} projects failed validation.`;
+          }
+          alert(message);
+          
+        } catch (error) {
+          console.error('Failed to import CSV:', error);
+          alert('Failed to import CSV file. Please check the file format.');
+        }
+      };
+      reader.readAsText(file);
+    }
+    // Reset the input
+    event.target.value = '';
+  };
+
   const handleResetToDefault = () => {
     if (window.confirm('Are you sure you want to reset to default data? This will overwrite your current initiatives.')) {
       setData(initialData);
@@ -417,11 +566,21 @@ const AIOpportunityQuadrant = () => {
               </button>
               <label className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer">
                 <Upload size={18} />
-                Import
+                Import JSON
                 <input
                   type="file"
                   accept=".json"
                   onChange={handleImportData}
+                  className="hidden"
+                />
+              </label>
+              <label className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer">
+                <Upload size={18} />
+                Import CSV
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportCSV}
                   className="hidden"
                 />
               </label>
@@ -435,7 +594,8 @@ const AIOpportunityQuadrant = () => {
           </div>
           <div className="text-sm text-gray-600">
             <p><strong>Share:</strong> Generate a URL to share your current initiatives with others</p>
-            <p><strong>Export/Import:</strong> Save or load initiative data as JSON files</p>
+            <p><strong>Export/Import:</strong> Save as JSON or load data from JSON/CSV files</p>
+            <p><strong>CSV Format:</strong> Project Name, Category, Phase, Description, Impact (1-5), Feasibility (1-5)</p>
             <p><strong>Auto-save:</strong> Your changes are automatically saved to browser storage</p>
           </div>
         </div>
