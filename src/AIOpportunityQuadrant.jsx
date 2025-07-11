@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
-import { Plus, X, Edit2, Save, XCircle } from 'lucide-react';
+import { Plus, X, Edit2, Save, XCircle, Share2, Download, Upload, Copy } from 'lucide-react';
 
 const AIOpportunityQuadrant = () => {
   const initialData = [
@@ -18,11 +18,63 @@ const AIOpportunityQuadrant = () => {
     { id: 12, name: "Fraud Detection System", feasibility: 4.1, impact: 2.3, category: "Financial", description: "AI-powered fraud prevention" },
   ];
 
-  const [data, setData] = useState(initialData);
+  // Utility functions for data handling
+  const compressData = (data) => {
+    return btoa(JSON.stringify(data));
+  };
+
+  const decompressData = (compressed) => {
+    try {
+      return JSON.parse(atob(compressed));
+    } catch (error) {
+      console.error('Failed to decompress data:', error);
+      return null;
+    }
+  };
+
+  const loadDataFromURL = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedData = urlParams.get('data');
+    if (sharedData) {
+      const decompressed = decompressData(sharedData);
+      if (decompressed && Array.isArray(decompressed) && decompressed.every(item => isValidProject(item))) {
+        return decompressed;
+      } else {
+        console.warn('Invalid data in URL, ignoring');
+      }
+    }
+    return null;
+  };
+
+  const loadDataFromStorage = () => {
+    try {
+      const saved = localStorage.getItem('ai-quadrant-data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.every(item => isValidProject(item))) {
+          return parsed;
+        } else {
+          console.warn('Invalid data in localStorage, ignoring');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load data from localStorage:', error);
+    }
+    return null;
+  };
+
+  const getInitialData = () => {
+    // Priority: URL data > localStorage > default data
+    return loadDataFromURL() || loadDataFromStorage() || initialData;
+  };
+
+  const [data, setData] = useState(getInitialData());
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
+  const [shareUrl, setShareUrl] = useState('');
+  const [showShareModal, setShowShareModal] = useState(false);
   const [newProject, setNewProject] = useState({
     name: '',
     feasibility: 3,
@@ -31,24 +83,70 @@ const AIOpportunityQuadrant = () => {
     description: ''
   });
 
+  // Save to localStorage whenever data changes with validation
+  useEffect(() => {
+    try {
+      // Validate data before saving
+      if (Array.isArray(data) && data.every(item => isValidProject(item))) {
+        localStorage.setItem('ai-quadrant-data', JSON.stringify(data));
+      } else {
+        console.warn('Invalid data detected, skipping localStorage save');
+      }
+    } catch (error) {
+      console.error('Failed to save data to localStorage:', error);
+      // Don't alert user for storage errors unless critical
+    }
+  }, [data]);
+
   const categoryColors = {
     Clinical: "#3B82F6",
     Operational: "#10B981",
     Financial: "#F59E0B"
   };
 
+  // Helper function for safe ID generation
+  const generateNewId = (dataArray) => {
+    if (!dataArray || dataArray.length === 0) return 1;
+    return Math.max(...dataArray.map(d => d.id || 0)) + 1;
+  };
+
+  // Helper function for data validation
+  const isValidProject = (project) => {
+    const validCategories = ['Clinical', 'Operational', 'Financial'];
+    
+    return (
+      project &&
+      typeof project.id === 'number' &&
+      typeof project.name === 'string' &&
+      project.name.trim().length > 0 &&
+      typeof project.feasibility === 'number' &&
+      project.feasibility >= 1 && project.feasibility <= 5 &&
+      typeof project.impact === 'number' &&
+      project.impact >= 1 && project.impact <= 5 &&
+      validCategories.includes(project.category) &&
+      typeof project.description === 'string'
+    );
+  };
+
   const handleAddProject = () => {
     if (newProject.name.trim()) {
-      const newId = Math.max(...data.map(d => d.id)) + 1;
-      setData([...data, { ...newProject, id: newId }]);
-      setNewProject({
-        name: '',
-        feasibility: 3,
-        impact: 3,
-        category: 'Clinical',
-        description: ''
-      });
-      setShowAddForm(false);
+      const newId = generateNewId(data);
+      const projectToAdd = { ...newProject, id: newId };
+      
+      if (isValidProject(projectToAdd)) {
+        setData([...data, projectToAdd]);
+        setNewProject({
+          name: '',
+          feasibility: 3,
+          impact: 3,
+          category: 'Clinical',
+          description: ''
+        });
+        setShowAddForm(false);
+      } else {
+        console.error('Invalid project data:', projectToAdd);
+        alert('Invalid project data. Please check all fields.');
+      }
     }
   };
 
@@ -62,14 +160,83 @@ const AIOpportunityQuadrant = () => {
   };
 
   const handleSaveEdit = () => {
-    setData(data.map(d => d.id === editingId ? editingProject : d));
-    setEditingId(null);
-    setEditingProject(null);
+    if (editingProject && isValidProject(editingProject)) {
+      setData(data.map(d => d.id === editingId ? editingProject : d));
+      setEditingId(null);
+      setEditingProject(null);
+    } else {
+      console.error('Invalid project data during edit:', editingProject);
+      alert('Invalid project data. Please check all fields.');
+    }
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditingProject(null);
+  };
+
+  const handleShareData = () => {
+    const compressed = compressData(data);
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareableUrl = `${baseUrl}?data=${encodeURIComponent(compressed)}`;
+    setShareUrl(shareableUrl);
+    setShowShareModal(true);
+  };
+
+  const handleCopyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      // Could add a toast notification here
+      alert('Share URL copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      alert('Failed to copy URL to clipboard');
+    }
+  };
+
+  const handleExportData = () => {
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ai-quadrant-data.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportData = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (Array.isArray(importedData) && importedData.every(item => isValidProject(item))) {
+            setData(importedData);
+            alert('Data imported successfully!');
+          } else {
+            alert('Invalid file format or data structure. Please select a valid JSON file with proper project data.');
+          }
+        } catch (error) {
+          console.error('Failed to import data:', error);
+          alert('Failed to import data. Please check the file format.');
+        }
+      };
+      reader.readAsText(file);
+    }
+    // Reset the input
+    event.target.value = '';
+  };
+
+  const handleResetToDefault = () => {
+    if (window.confirm('Are you sure you want to reset to default data? This will overwrite your current initiatives.')) {
+      setData(initialData);
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   };
 
   const CustomTooltip = ({ active, payload }) => {
@@ -184,6 +351,50 @@ const AIOpportunityQuadrant = () => {
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">AI Opportunity Assessment</h1>
           <p className="text-lg text-gray-600">Strategic Prioritization Matrix for AI Initiatives</p>
+        </div>
+
+        {/* Data Management Controls */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-800">Data Management</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={handleShareData}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Share2 size={20} />
+                Share
+              </button>
+              <button
+                onClick={handleExportData}
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Download size={18} />
+                Export
+              </button>
+              <label className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer">
+                <Upload size={18} />
+                Import
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportData}
+                  className="hidden"
+                />
+              </label>
+              <button
+                onClick={handleResetToDefault}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+          <div className="text-sm text-gray-600">
+            <p><strong>Share:</strong> Generate a URL to share your current initiatives with others</p>
+            <p><strong>Export/Import:</strong> Save or load initiative data as JSON files</p>
+            <p><strong>Auto-save:</strong> Your changes are automatically saved to browser storage</p>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
@@ -540,6 +751,69 @@ const AIOpportunityQuadrant = () => {
             </div>
           </div>
         </div>
+
+        {/* Share Modal */}
+        {showShareModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full mx-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-800">Share Your AI Quadrant</h3>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Shareable URL (Copy and send to others):
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={shareUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                  />
+                  <button
+                    onClick={handleCopyToClipboard}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Copy size={16} />
+                    Copy
+                  </button>
+                </div>
+              </div>
+              
+              <div className="text-sm text-gray-600 mb-4">
+                <p className="mb-2"><strong>How it works:</strong></p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>This URL contains all your current AI initiatives in a compressed format</li>
+                  <li>Anyone with access to your server can open this link to view your quadrant</li>
+                  <li>The URL will automatically load your exact configuration</li>
+                  <li>Recipients can then modify and create their own versions</li>
+                </ul>
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleCopyToClipboard}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Copy URL
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
