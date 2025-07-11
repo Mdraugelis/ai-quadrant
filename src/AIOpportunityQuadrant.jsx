@@ -37,8 +37,10 @@ const AIOpportunityQuadrant = () => {
     const sharedData = urlParams.get('data');
     if (sharedData) {
       const decompressed = decompressData(sharedData);
-      if (decompressed && Array.isArray(decompressed)) {
+      if (decompressed && Array.isArray(decompressed) && decompressed.every(item => isValidProject(item))) {
         return decompressed;
+      } else {
+        console.warn('Invalid data in URL, ignoring');
       }
     }
     return null;
@@ -49,8 +51,10 @@ const AIOpportunityQuadrant = () => {
       const saved = localStorage.getItem('ai-quadrant-data');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.every(item => isValidProject(item))) {
           return parsed;
+        } else {
+          console.warn('Invalid data in localStorage, ignoring');
         }
       }
     } catch (error) {
@@ -79,12 +83,18 @@ const AIOpportunityQuadrant = () => {
     description: ''
   });
 
-  // Save to localStorage whenever data changes
+  // Save to localStorage whenever data changes with validation
   useEffect(() => {
     try {
-      localStorage.setItem('ai-quadrant-data', JSON.stringify(data));
+      // Validate data before saving
+      if (Array.isArray(data) && data.every(item => isValidProject(item))) {
+        localStorage.setItem('ai-quadrant-data', JSON.stringify(data));
+      } else {
+        console.warn('Invalid data detected, skipping localStorage save');
+      }
     } catch (error) {
       console.error('Failed to save data to localStorage:', error);
+      // Don't alert user for storage errors unless critical
     }
   }, [data]);
 
@@ -94,18 +104,49 @@ const AIOpportunityQuadrant = () => {
     Financial: "#F59E0B"
   };
 
+  // Helper function for safe ID generation
+  const generateNewId = (dataArray) => {
+    if (!dataArray || dataArray.length === 0) return 1;
+    return Math.max(...dataArray.map(d => d.id || 0)) + 1;
+  };
+
+  // Helper function for data validation
+  const isValidProject = (project) => {
+    const validCategories = ['Clinical', 'Operational', 'Financial'];
+    
+    return (
+      project &&
+      typeof project.id === 'number' &&
+      typeof project.name === 'string' &&
+      project.name.trim().length > 0 &&
+      typeof project.feasibility === 'number' &&
+      project.feasibility >= 1 && project.feasibility <= 5 &&
+      typeof project.impact === 'number' &&
+      project.impact >= 1 && project.impact <= 5 &&
+      validCategories.includes(project.category) &&
+      typeof project.description === 'string'
+    );
+  };
+
   const handleAddProject = () => {
     if (newProject.name.trim()) {
-      const newId = Math.max(...data.map(d => d.id)) + 1;
-      setData([...data, { ...newProject, id: newId }]);
-      setNewProject({
-        name: '',
-        feasibility: 3,
-        impact: 3,
-        category: 'Clinical',
-        description: ''
-      });
-      setShowAddForm(false);
+      const newId = generateNewId(data);
+      const projectToAdd = { ...newProject, id: newId };
+      
+      if (isValidProject(projectToAdd)) {
+        setData([...data, projectToAdd]);
+        setNewProject({
+          name: '',
+          feasibility: 3,
+          impact: 3,
+          category: 'Clinical',
+          description: ''
+        });
+        setShowAddForm(false);
+      } else {
+        console.error('Invalid project data:', projectToAdd);
+        alert('Invalid project data. Please check all fields.');
+      }
     }
   };
 
@@ -119,9 +160,14 @@ const AIOpportunityQuadrant = () => {
   };
 
   const handleSaveEdit = () => {
-    setData(data.map(d => d.id === editingId ? editingProject : d));
-    setEditingId(null);
-    setEditingProject(null);
+    if (editingProject && isValidProject(editingProject)) {
+      setData(data.map(d => d.id === editingId ? editingProject : d));
+      setEditingId(null);
+      setEditingProject(null);
+    } else {
+      console.error('Invalid project data during edit:', editingProject);
+      alert('Invalid project data. Please check all fields.');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -168,11 +214,11 @@ const AIOpportunityQuadrant = () => {
       reader.onload = (e) => {
         try {
           const importedData = JSON.parse(e.target.result);
-          if (Array.isArray(importedData)) {
+          if (Array.isArray(importedData) && importedData.every(item => isValidProject(item))) {
             setData(importedData);
             alert('Data imported successfully!');
           } else {
-            alert('Invalid file format. Please select a valid JSON file.');
+            alert('Invalid file format or data structure. Please select a valid JSON file with proper project data.');
           }
         } catch (error) {
           console.error('Failed to import data:', error);
