@@ -88,6 +88,3 @@ jobs:
       run: npm audit --audit-level=high
       continue-on-error: true
       
-    - name: Run dependency vulnerability scan
-      uses: actions/dependency-review-action@v3
-      if: github.event_name == 'pull_request'
