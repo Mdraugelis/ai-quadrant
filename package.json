@@ -8,6 +8,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:csv": "node scripts/test-csv-import.js",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
@@ -20,6 +21,8 @@
     "recharts": "^2.5.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.6.1",
     "autoprefixer": "^10.4.14",
     "gh-pages": "^6.3.0",
     "postcss": "^8.4.24",
