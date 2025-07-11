@@ -59,6 +59,27 @@ Create a production build:
 npm run build
 ```
 
+## 🚀 Easy Deployment
+
+Deploy to permanent cloud hosting in minutes:
+
+### Option 1: GitHub Pages (Automatic) ⭐ **RECOMMENDED**
+1. Enable Pages in your repo settings
+2. Select "GitHub Actions" as source
+3. Push to main branch → Automatically deployed!
+
+### Option 2: Vercel (One-Click)
+1. Go to [vercel.com](https://vercel.com)
+2. Connect your GitHub repo
+3. Click Deploy → Done!
+
+### Option 3: Netlify (Drag & Drop)
+1. Run `npm run build`
+2. Drag the `build` folder to [netlify.com/drop](https://netlify.com/drop)
+3. Instant deployment!
+
+📖 **See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions**
+
 ## Dependencies
 
 - **React**: Frontend framework
