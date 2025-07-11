@@ -7,7 +7,8 @@ A React-based interactive visualization tool for assessing and prioritizing AI i
 - **Interactive 2x2 Matrix**: Visualize AI initiatives by Impact vs Feasibility
 - **Real-time Editing**: Add, edit, and delete projects on the fly
 - **Smart Label Positioning**: Automatic label placement to avoid overlaps
-- **Category Color Coding**: Visual distinction between Clinical, Operational, and Financial initiatives
+- **Phase-Based Color Coding**: Visual distinction by implementation phase (Implemented, Planned, Unplanned)
+- **Multiple Business Categories**: Support for Clinical, Operational, Financial, College, and GHP initiatives
 - **Dynamic Metrics**: Live updates of Quick Wins count and average impact score
 - **Responsive Design**: Works on desktop and tablet screens
 - **URL Sharing**: Generate shareable links with embedded data
@@ -68,11 +69,12 @@ npm run build
 ## Usage
 
 ### Basic Operations
-1. **View Existing Initiatives**: The quadrant displays sample AI initiatives with their impact and feasibility scores
-2. **Add New Projects**: Click "Add Project" to create new initiatives
-3. **Edit Projects**: Click the edit icon next to any project to modify its details
+1. **View Existing Initiatives**: The quadrant displays AI initiatives with their impact, feasibility scores, and implementation phase
+2. **Add New Projects**: Click "Add Project" to create new initiatives with category and phase selection
+3. **Edit Projects**: Click the edit icon next to any project to modify its details including phase status
 4. **Delete Projects**: Click the X icon to remove projects
 5. **Interactive Chart**: Hover over data points to see detailed information
+6. **Phase Tracking**: Color-coded dots indicate implementation status (Black=Implemented, Blue=Planned, Grey=Unplanned)
 
 ### Data Management & Sharing
 6. **Share Your Quadrant**: Click "Share" to generate a shareable URL containing your current initiatives
@@ -97,17 +99,19 @@ npm run build
 
 ## Customization
 
-### Categories
-Modify the `categoryColors` object in `AIOpportunityQuadrant.jsx` to change or add new categories:
+### Phase Colors
+The application uses phase-based colors to indicate implementation status:
+- **Implemented** (Black): Projects that are already in production
+- **Planned** (Blue): Projects that are scheduled for implementation
+- **Unplanned** (Grey): Projects that are ideas or under consideration
 
-```javascript
-const categoryColors = {
-  Clinical: "#3B82F6",
-  Operational: "#10B981", 
-  Financial: "#F59E0B",
-  // Add new categories here
-};
-```
+### Business Categories
+The application supports the following business categories:
+- **Clinical**: Healthcare and patient care initiatives
+- **Operational**: Process and efficiency improvements
+- **Financial**: Revenue and cost management projects
+- **College**: Academic and educational initiatives
+- **GHP**: Geisinger Health Plan specific projects
 
 ### Initial Data
 Update the `initialData` array to change the sample projects displayed on startup.
