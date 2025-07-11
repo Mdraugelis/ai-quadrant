@@ -81,7 +81,8 @@ npm run build
 7. **Auto-save**: All changes are automatically saved to your browser's localStorage
 8. **Export Data**: Download your initiatives as a JSON file for backup or sharing
 9. **Import Data**: Upload a JSON file to load previously saved initiatives
-10. **Reset**: Return to default sample data
+10. **Import CSV**: Upload a CSV file with the proper format (see CSV Format section below)
+11. **Reset**: Return to default sample data
 
 ### URL Sharing
 - Generate a shareable URL that contains all your initiative data
@@ -96,6 +97,37 @@ npm run build
 4. Send the URL to colleagues or stakeholders
 5. Recipients open the URL to see your exact configuration
 6. They can then modify and create their own versions
+
+## CSV Format
+
+When importing data via CSV, use the following column structure:
+
+### Required Headers
+The CSV parser looks for these column names (case-insensitive):
+- **Project Name/Initiative Name**: The name of the AI initiative
+- **Category**: Business category (Clinical, Operational, Financial, College, GHP)
+- **Phase/Status**: Implementation phase (Implemented, Planned, Unplanned)
+- **Description**: Brief description of the initiative
+- **Impact**: Impact score from 1-5
+- **Feasibility**: Feasibility score from 1-5
+
+### Example CSV Format
+```csv
+Project Name,Category,Phase,Description,Impact,Feasibility
+AI-Powered Diagnosis Assistant,Clinical,Planned,Machine learning tool to assist radiologists,5,3
+Automated Patient Scheduling,Operational,Implemented,Smart scheduling system to reduce wait times,4,5
+Predictive Analytics Dashboard,Financial,Unplanned,Revenue forecasting using historical data,4,2
+Virtual Health Assistant,Clinical,Planned,Chatbot for patient triage and basic health questions,3,4
+Supply Chain Optimization,Operational,Implemented,AI-driven inventory management system,4,4
+```
+
+### Notes
+- Headers are flexible - the parser looks for keywords (e.g., "Project", "Name", "Initiative" for the name column)
+- Category defaults to "Operational" if not found or invalid
+- Phase defaults to "Unplanned" if not found or invalid
+- Impact and Feasibility scores are clamped to 1-5 range
+- Empty rows are automatically skipped
+- The parser handles quoted values and commas within quotes
 
 ## Customization
 
