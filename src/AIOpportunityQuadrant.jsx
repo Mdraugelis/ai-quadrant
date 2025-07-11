@@ -4,18 +4,18 @@ import { Plus, X, Edit2, Save, XCircle, Share2, Download, Upload, Copy } from 'l
 
 const AIOpportunityQuadrant = () => {
   const initialData = [
-    { id: 1, name: "Clinical Decision Support", feasibility: 4.2, impact: 4.8, category: "Clinical", description: "AI-powered diagnostic assistance" },
-    { id: 2, name: "Patient Flow Optimization", feasibility: 3.8, impact: 4.3, category: "Operational", description: "Reduce wait times and improve capacity" },
-    { id: 3, name: "Predictive Maintenance", feasibility: 4.5, impact: 3.2, category: "Operational", description: "Equipment failure prediction" },
-    { id: 4, name: "Virtual Health Assistant", feasibility: 2.4, impact: 4.5, category: "Clinical", description: "24/7 patient support chatbot" },
-    { id: 5, name: "Revenue Cycle AI", feasibility: 4.6, impact: 4.1, category: "Financial", description: "Automated billing optimization" },
-    { id: 6, name: "Staff Scheduling AI", feasibility: 3.5, impact: 3.7, category: "Operational", description: "Intelligent workforce management" },
-    { id: 7, name: "Drug Interaction Checker", feasibility: 4.7, impact: 4.6, category: "Clinical", description: "Real-time medication safety" },
-    { id: 8, name: "Radiology AI Assistant", feasibility: 2.2, impact: 4.7, category: "Clinical", description: "Advanced imaging analysis" },
-    { id: 9, name: "Supply Chain Optimizer", feasibility: 3.9, impact: 2.8, category: "Operational", description: "Inventory management AI" },
-    { id: 10, name: "Patient Risk Stratification", feasibility: 3.4, impact: 4.4, category: "Clinical", description: "Proactive care management" },
-    { id: 11, name: "Documentation Assistant", feasibility: 4.3, impact: 3.4, category: "Clinical", description: "Automated clinical notes" },
-    { id: 12, name: "Fraud Detection System", feasibility: 4.1, impact: 2.3, category: "Financial", description: "AI-powered fraud prevention" },
+    { id: 1, name: "Clinical Decision Support", feasibility: 4.2, impact: 4.8, category: "Clinical", phase: "implemented", description: "AI-powered diagnostic assistance" },
+    { id: 2, name: "Patient Flow Optimization", feasibility: 3.8, impact: 4.3, category: "Operational", phase: "planned", description: "Reduce wait times and improve capacity" },
+    { id: 3, name: "Predictive Maintenance", feasibility: 4.5, impact: 3.2, category: "Operational", phase: "implemented", description: "Equipment failure prediction" },
+    { id: 4, name: "Virtual Health Assistant", feasibility: 2.4, impact: 4.5, category: "Clinical", phase: "unplanned", description: "24/7 patient support chatbot" },
+    { id: 5, name: "Revenue Cycle AI", feasibility: 4.6, impact: 4.1, category: "Financial", phase: "planned", description: "Automated billing optimization" },
+    { id: 6, name: "Staff Scheduling AI", feasibility: 3.5, impact: 3.7, category: "Operational", phase: "planned", description: "Intelligent workforce management" },
+    { id: 7, name: "Drug Interaction Checker", feasibility: 4.7, impact: 4.6, category: "Clinical", phase: "implemented", description: "Real-time medication safety" },
+    { id: 8, name: "Radiology AI Assistant", feasibility: 2.2, impact: 4.7, category: "Clinical", phase: "unplanned", description: "Advanced imaging analysis" },
+    { id: 9, name: "Supply Chain Optimizer", feasibility: 3.9, impact: 2.8, category: "Operational", phase: "planned", description: "Inventory management AI" },
+    { id: 10, name: "Patient Risk Stratification", feasibility: 3.4, impact: 4.4, category: "Clinical", phase: "planned", description: "Proactive care management" },
+    { id: 11, name: "Documentation Assistant", feasibility: 4.3, impact: 3.4, category: "Clinical", phase: "implemented", description: "Automated clinical notes" },
+    { id: 12, name: "Fraud Detection System", feasibility: 4.1, impact: 2.3, category: "Financial", phase: "unplanned", description: "AI-powered fraud prevention" },
   ];
 
   // Utility functions for data handling
@@ -36,7 +36,18 @@ const AIOpportunityQuadrant = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const sharedData = urlParams.get('data');
     if (sharedData) {
-      const decompressed = decompressData(sharedData);
+      let decompressed = decompressData(sharedData);
+      
+      // Migrate old data that doesn't have phase field
+      if (decompressed && Array.isArray(decompressed)) {
+        decompressed = decompressed.map(item => {
+          if (!item.phase) {
+            return { ...item, phase: 'unplanned' };
+          }
+          return item;
+        });
+      }
+      
       if (decompressed && Array.isArray(decompressed) && decompressed.every(item => isValidProject(item))) {
         return decompressed;
       } else {
@@ -50,7 +61,18 @@ const AIOpportunityQuadrant = () => {
     try {
       const saved = localStorage.getItem('ai-quadrant-data');
       if (saved) {
-        const parsed = JSON.parse(saved);
+        let parsed = JSON.parse(saved);
+        
+        // Migrate old data that doesn't have phase field
+        if (Array.isArray(parsed)) {
+          parsed = parsed.map(item => {
+            if (!item.phase) {
+              return { ...item, phase: 'unplanned' };
+            }
+            return item;
+          });
+        }
+        
         if (Array.isArray(parsed) && parsed.every(item => isValidProject(item))) {
           return parsed;
         } else {
@@ -80,6 +102,7 @@ const AIOpportunityQuadrant = () => {
     feasibility: 3,
     impact: 3,
     category: 'Clinical',
+    phase: 'unplanned',
     description: ''
   });
 
@@ -98,10 +121,11 @@ const AIOpportunityQuadrant = () => {
     }
   }, [data]);
 
-  const categoryColors = {
-    Clinical: "#3B82F6",
-    Operational: "#10B981",
-    Financial: "#F59E0B"
+  // Phase-based colors
+  const phaseColors = {
+    implemented: "#000000",  // Black
+    planned: "#3B82F6",      // Blue
+    unplanned: "#9CA3AF"     // Grey
   };
 
   // Helper function for safe ID generation
@@ -112,7 +136,8 @@ const AIOpportunityQuadrant = () => {
 
   // Helper function for data validation
   const isValidProject = (project) => {
-    const validCategories = ['Clinical', 'Operational', 'Financial'];
+    const validCategories = ['Clinical', 'Operational', 'Financial', 'College', 'GHP'];
+    const validPhases = ['implemented', 'planned', 'unplanned'];
     
     return (
       project &&
@@ -124,6 +149,7 @@ const AIOpportunityQuadrant = () => {
       typeof project.impact === 'number' &&
       project.impact >= 1 && project.impact <= 5 &&
       validCategories.includes(project.category) &&
+      validPhases.includes(project.phase) &&
       typeof project.description === 'string'
     );
   };
@@ -140,6 +166,7 @@ const AIOpportunityQuadrant = () => {
           feasibility: 3,
           impact: 3,
           category: 'Clinical',
+          phase: 'unplanned',
           description: ''
         });
         setShowAddForm(false);
@@ -213,7 +240,18 @@ const AIOpportunityQuadrant = () => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const importedData = JSON.parse(e.target.result);
+          let importedData = JSON.parse(e.target.result);
+          
+          // Migrate old data that doesn't have phase field
+          if (Array.isArray(importedData)) {
+            importedData = importedData.map(item => {
+              if (!item.phase) {
+                return { ...item, phase: 'unplanned' };
+              }
+              return item;
+            });
+          }
+          
           if (Array.isArray(importedData) && importedData.every(item => isValidProject(item))) {
             setData(importedData);
             alert('Data imported successfully!');
@@ -223,6 +261,155 @@ const AIOpportunityQuadrant = () => {
         } catch (error) {
           console.error('Failed to import data:', error);
           alert('Failed to import data. Please check the file format.');
+        }
+      };
+      reader.readAsText(file);
+    }
+    // Reset the input
+    event.target.value = '';
+  };
+
+  const parseCSVLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
+  };
+
+  const handleImportCSV = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result;
+          const lines = text.split('\n').filter(line => line.trim());
+          
+          if (lines.length < 2) {
+            alert('CSV file appears to be empty or has no data rows.');
+            return;
+          }
+          
+          // Parse header to find column indices
+          const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+          const nameIndex = headers.findIndex(h => h.includes('project') || h.includes('name') || h.includes('initiative'));
+          const categoryIndex = headers.findIndex(h => h.includes('category'));
+          const phaseIndex = headers.findIndex(h => h.includes('phase') || h.includes('status'));
+          const descriptionIndex = headers.findIndex(h => h.includes('description') || h.includes('desc'));
+          const impactIndex = headers.findIndex(h => h.includes('impact'));
+          const feasibilityIndex = headers.findIndex(h => h.includes('feasibility') || h.includes('feasible'));
+          
+          const importedData = [];
+          let skippedRows = 0;
+          
+          for (let i = 1; i < lines.length; i++) {
+            const values = parseCSVLine(lines[i]);
+            
+            // Skip empty rows
+            if (values.every(v => !v.trim())) continue;
+            
+            // Extract and validate values with defaults
+            const name = values[nameIndex]?.trim() || `Initiative ${i}`;
+            
+            // Skip if no name can be determined
+            if (!name || name === `Initiative ${i}` && nameIndex === -1) {
+              skippedRows++;
+              continue;
+            }
+            
+            // Category validation with default
+            let category = values[categoryIndex]?.trim() || 'Operational';
+            const validCategories = ['Clinical', 'Operational', 'Financial', 'College', 'GHP'];
+            if (!validCategories.includes(category)) {
+              // Try to match partial category names
+              const matched = validCategories.find(c => c.toLowerCase().includes(category.toLowerCase()) || category.toLowerCase().includes(c.toLowerCase()));
+              category = matched || 'Operational';
+            }
+            
+            // Phase validation with default
+            let phase = values[phaseIndex]?.trim()?.toLowerCase() || 'unplanned';
+            const phaseMap = {
+              'implemented': 'implemented',
+              'complete': 'implemented',
+              'done': 'implemented',
+              'planned': 'planned',
+              'planning': 'planned',
+              'in progress': 'planned',
+              'unplanned': 'unplanned',
+              'future': 'unplanned',
+              'proposed': 'unplanned'
+            };
+            phase = phaseMap[phase] || 'unplanned';
+            
+            // Parse numeric values with defaults
+            const parseScore = (value, defaultScore = 3) => {
+              if (!value) return defaultScore;
+              const num = parseFloat(value);
+              if (isNaN(num)) return defaultScore;
+              // Clamp between 1 and 5
+              return Math.max(1, Math.min(5, num));
+            };
+            
+            const impact = parseScore(values[impactIndex], 3);
+            const feasibility = parseScore(values[feasibilityIndex], 3);
+            
+            const description = values[descriptionIndex]?.trim() || '';
+            
+            const newId = generateNewId([...data, ...importedData]);
+            
+            importedData.push({
+              id: newId + importedData.length,
+              name,
+              category,
+              phase,
+              description,
+              impact,
+              feasibility
+            });
+          }
+          
+          if (importedData.length === 0) {
+            alert('No valid data found in CSV file. Please check the file format.');
+            return;
+          }
+          
+          // Validate all imported projects
+          const validProjects = importedData.filter(p => isValidProject(p));
+          
+          if (validProjects.length === 0) {
+            alert('No valid projects could be imported from the CSV file.');
+            return;
+          }
+          
+          setData([...data, ...validProjects]);
+          
+          let message = `Successfully imported ${validProjects.length} initiatives from CSV.`;
+          if (skippedRows > 0) {
+            message += ` Skipped ${skippedRows} invalid rows.`;
+          }
+          if (validProjects.length < importedData.length) {
+            message += ` ${importedData.length - validProjects.length} projects failed validation.`;
+          }
+          alert(message);
+          
+        } catch (error) {
+          console.error('Failed to import CSV:', error);
+          alert('Failed to import CSV file. Please check the file format.');
         }
       };
       reader.readAsText(file);
@@ -257,10 +444,15 @@ const AIOpportunityQuadrant = () => {
             </div>
           </div>
           <div className="mt-2">
-            <span className="inline-block px-2 py-1 text-xs rounded-full text-white"
-                  style={{ backgroundColor: categoryColors[data.category] }}>
-              {data.category}
-            </span>
+            <div className="mt-2 flex gap-2">
+              <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-800">
+                {data.category}
+              </span>
+              <span className="inline-block px-2 py-1 text-xs rounded-full text-white capitalize"
+                    style={{ backgroundColor: phaseColors[data.phase] }}>
+                {data.phase}
+              </span>
+            </div>
           </div>
         </div>
       );
@@ -329,7 +521,7 @@ const AIOpportunityQuadrant = () => {
           cx={cx}
           cy={cy}
           r={isHovered || isEditing ? 9 : 7}
-          fill={categoryColors[payload.category]}
+          fill={phaseColors[payload.phase]}
           fillOpacity={1}
           stroke={isEditing ? "#059669" : "#fff"}
           strokeWidth={isEditing ? 3 : 2}
@@ -374,11 +566,21 @@ const AIOpportunityQuadrant = () => {
               </button>
               <label className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer">
                 <Upload size={18} />
-                Import
+                Import JSON
                 <input
                   type="file"
                   accept=".json"
                   onChange={handleImportData}
+                  className="hidden"
+                />
+              </label>
+              <label className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer">
+                <Upload size={18} />
+                Import CSV
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportCSV}
                   className="hidden"
                 />
               </label>
@@ -392,7 +594,8 @@ const AIOpportunityQuadrant = () => {
           </div>
           <div className="text-sm text-gray-600">
             <p><strong>Share:</strong> Generate a URL to share your current initiatives with others</p>
-            <p><strong>Export/Import:</strong> Save or load initiative data as JSON files</p>
+            <p><strong>Export/Import:</strong> Save as JSON or load data from JSON/CSV files</p>
+            <p><strong>CSV Format:</strong> Project Name, Category, Phase, Description, Impact (1-5), Feasibility (1-5)</p>
             <p><strong>Auto-save:</strong> Your changes are automatically saved to browser storage</p>
           </div>
         </div>
@@ -432,6 +635,23 @@ const AIOpportunityQuadrant = () => {
                     <option value="Clinical">Clinical</option>
                     <option value="Operational">Operational</option>
                     <option value="Financial">Financial</option>
+                    <option value="College">College</option>
+                    <option value="GHP">GHP</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phase</label>
+                  <select
+                    value={newProject.phase}
+                    onChange={(e) => setNewProject({...newProject, phase: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="implemented">Implemented</option>
+                    <option value="planned">Planned</option>
+                    <option value="unplanned">Unplanned</option>
                   </select>
                 </div>
               </div>
@@ -585,7 +805,24 @@ const AIOpportunityQuadrant = () => {
                           <option value="Clinical">Clinical</option>
                           <option value="Operational">Operational</option>
                           <option value="Financial">Financial</option>
+                          <option value="College">College</option>
+                          <option value="GHP">GHP</option>
                         </select>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Phase</label>
+                          <select
+                            value={editingProject.phase}
+                            onChange={(e) => setEditingProject({...editingProject, phase: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          >
+                            <option value="implemented">Implemented</option>
+                            <option value="planned">Planned</option>
+                            <option value="unplanned">Unplanned</option>
+                          </select>
+                        </div>
                       </div>
                       
                       <input
@@ -648,12 +885,16 @@ const AIOpportunityQuadrant = () => {
                   ) : (
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: categoryColors[project.category] }}></div>
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: phaseColors[project.phase] }}></div>
                         <div className="flex-1">
                           <span className="font-medium text-gray-700">{project.name}</span>
                           <span className="text-sm text-gray-500 ml-2">
                             (Impact: {project.impact.toFixed(1)}, Feasibility: {project.feasibility.toFixed(1)})
                           </span>
+                          <div className="flex gap-2 mt-1">
+                            <span className="text-xs text-gray-500">{project.category}</span>
+                            <span className="text-xs text-gray-500 capitalize">• {project.phase}</span>
+                          </div>
                           <p className="text-xs text-gray-400 mt-1">{project.description}</p>
                         </div>
                       </div>
@@ -681,17 +922,38 @@ const AIOpportunityQuadrant = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Categories</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Phase Status</h3>
             <div className="space-y-3">
-              {Object.entries(categoryColors).map(([category, color]) => (
-                <div key={category} className="flex items-center">
-                  <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: color }}></div>
-                  <span className="text-gray-700">{category}</span>
-                  <span className="ml-auto text-gray-500 text-sm">
-                    {data.filter(d => d.category === category).length} initiatives
-                  </span>
-                </div>
-              ))}
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: phaseColors.implemented }}></div>
+                <span className="text-gray-700">Implemented</span>
+                <span className="ml-auto text-gray-500 text-sm">
+                  {data.filter(d => d.phase === 'implemented').length} initiatives
+                </span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: phaseColors.planned }}></div>
+                <span className="text-gray-700">Planned</span>
+                <span className="ml-auto text-gray-500 text-sm">
+                  {data.filter(d => d.phase === 'planned').length} initiatives
+                </span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: phaseColors.unplanned }}></div>
+                <span className="text-gray-700">Unplanned</span>
+                <span className="ml-auto text-gray-500 text-sm">
+                  {data.filter(d => d.phase === 'unplanned').length} initiatives
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t space-y-2">
+              <h4 className="text-sm font-semibold text-gray-700">Categories:</h4>
+              <div className="text-sm text-gray-600">
+                Clinical • Operational • Financial • College • GHP
+              </div>
+              <div className="text-xs text-gray-500">
+                Total: {data.length} initiatives across {[...new Set(data.map(d => d.category))].length} categories
+              </div>
             </div>
           </div>
 

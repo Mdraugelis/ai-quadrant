@@ -19,5 +19,9 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "github": {
+    "autoAlias": true,
+    "silent": true
+  }
 }
